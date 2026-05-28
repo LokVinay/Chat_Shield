@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from a_users.views import profile_view
+from realtime_chatter.views import start_extraction, stop_extraction
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,6 +27,8 @@ urlpatterns = [
     path('', include('realtime_chatter.urls')),
     path('profile/', include('a_users.urls')),
     path('@<username>/', profile_view, name="profile"),
+    path('start-extraction/<str:room_id>/', start_extraction),
+    path('stop-extraction/', stop_extraction),
 ]
 
 # Only used when DEBUG=True, whitenoise can serve files when DEBUG=False

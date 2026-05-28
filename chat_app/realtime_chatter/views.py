@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from .models import *
 from .forms import ChatmessageCreateForm
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 @login_required
 def chat_view(request, chatroom_name= 'public-chat'):
@@ -63,3 +65,98 @@ def get_or_create_chatroom(request, username):
         chatroom.members.add(other_user, request.user)
 
     return redirect('chatroom', chatroom.group_name)
+
+
+from django.http import JsonResponse
+
+import json
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
+def start_extraction(request, room_id):
+
+    if request.method == "POST":
+
+        try:
+
+            data = json.loads(request.body)
+
+            messages = data.get("messages", [])
+
+            print("📩 Received Messages:")
+            print(messages)
+
+            # 🔥 THREAT KEYWORDS
+            threat_keywords = [
+                "otp",
+                "password",
+                "bank",
+                "credit card",
+                "cvv",
+                "send money",
+                "click this link",
+                "verify account",
+                "upi",
+                "urgent",
+                "login",
+                "pin",
+                "hack",
+                "telegram",
+                "lottery",
+                "prize"
+            ]
+
+            threat_score = 0
+
+            # 🔍 CHECK EACH MESSAGE
+            for msg in messages:
+
+                lower_msg = msg.lower()
+
+                print("🔎 Checking:", lower_msg)
+
+                for keyword in threat_keywords:
+
+                    if keyword in lower_msg:
+
+                        print("⚠ Threat Keyword Found:", keyword)
+
+                        threat_score += 20
+
+            # 🎯 LIMIT SCORE
+            if threat_score > 100:
+                threat_score = 100
+
+            # 🎯 VERDICT
+            if threat_score > 70:
+                verdict = "POTENTIAL THREAT"
+
+            elif threat_score > 40:
+                verdict = "MEDIUM RISK"
+
+            else:
+                verdict = "SAFE"
+
+            return JsonResponse({
+                "confidence": threat_score,
+                "verdict": verdict
+            })
+
+        except Exception as e:
+
+            print("❌ ERROR:", str(e))
+
+            return JsonResponse({
+                "confidence": 0,
+                "verdict": "ERROR"
+            })
+
+    return JsonResponse({
+        "confidence": 0,
+        "verdict": "INVALID REQUEST"
+    })
+
+@csrf_exempt
+def stop_extraction(request):
+    return JsonResponse({
+        "message": "Stopped Successfully"
+    })
